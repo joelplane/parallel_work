@@ -52,18 +52,16 @@ module ParallelWork
         its_over = false
         while !@parent_sockets.empty? && (ready = IO.select(@parent_sockets))
           socket = ready[0][0]
-          message_from_worker = socket.recv(MESSAGE_LEN)
+          message_from_worker = Messaging.recv socket
           send_quit = lambda do |socket|
-            socket.send('QUIT ', 0)
+            Messaging.send socket, Message::Quit.new
             socket.close
           end
           begin
             if its_over
               send_quit[socket]
             else
-              data = @work.next
-              socket.send('WORK ', 0)
-              socket.send(Marshal.dump(data), 0)
+              Messaging.send socket, Message::Work.new(@work.next)
             end
           rescue StopIteration
             its_over = true
@@ -73,17 +71,16 @@ module ParallelWork
         end
       else
         puts "child pid #{Process.pid}"
-        @child_socket.send('READY', 0)
-        while message = @child_socket.recv(MESSAGE_LEN)
-          if message.strip == 'WORK'
-            marshalled_data = @child_socket.recv(SOCKET_MAX_LEN)
-            data = Marshal.load(marshalled_data)
-            @process_block.call(data)
-            @child_socket.send('OK   ', 0)
-          elsif message.strip == 'QUIT'
-            exit 0
-          else
-            raise "unknown message #{message}"
+        Messaging.send @child_socket, Message::Ready.new
+        while (message = Messaging.recv @child_socket)
+          case message
+            when Message::Work
+              @process_block.call(message.payload)
+              Messaging.send(@child_socket, Message::Ready.new)
+            when Message::Quit
+              exit 0
+            else
+              raise "unknown message #{message}"
           end
         end
       end

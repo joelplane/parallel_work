@@ -1,6 +1,8 @@
 require File.expand_path "./parallel_work/version", File.dirname(__FILE__)
 require 'socket'
 require File.expand_path './parallel_work/runner', File.dirname(__FILE__)
+require File.expand_path './parallel_work/messaging', File.dirname(__FILE__)
+require File.expand_path './parallel_work/message', File.dirname(__FILE__)
 
 module ParallelWork
 
