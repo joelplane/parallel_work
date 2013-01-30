@@ -1,8 +1,8 @@
 require File.expand_path "../lib/parallel_work", File.dirname(__FILE__)
 
-work = (1..10).to_a
+work = (1..400).to_a
 
-ParallelWork.process work, 4 do |data|
+ParallelWork.process work, 40 do |data|
   puts data
-  sleep 1
+  sleep rand
 end
